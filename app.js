@@ -20,12 +20,21 @@
  *
  */
 
+/**
+ * 8/9/18
+ *
+ * Used the Messenger Platform Quick Start Tutorial for the
+ * Weather To Go chatbot created during GovHack Sydney 2018
+ */
+
 'use strict';
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
+const TRANSPORT_NSW_API_KEY = process.env.TRANSPORT_NSW_API_KEY;
 // Imports dependencies and set up http server
 const 
   request = require('request'),
   express = require('express'),
+  geolib = require('geolib'),
   body_parser = require('body-parser'),
   app = express().use(body_parser.json()); // creates express http server
 
@@ -119,8 +128,11 @@ function handleMessage(sender_psid, received_message) {
       "text": message
     }
   } else if (received_message.attachments) {
-
     if (received_message.attachments[0].payload) {
+      if (received_message.attachments[0].type === 'location') {
+        const localTrafficMsg = localTraffic(received_message.attachments[0].payload.coordinates);
+        message += ' ' + localTrafficMsg;
+      }
       response = {
         "text": `Here's the latest info for Sydney: ${message}`
       }
@@ -170,7 +182,14 @@ function handlePostback(sender_psid, received_postback) {
   } else if (payload === 'no') {
     response = { "text": "Oops, try sending another image." }
   } else if (payload === 'InitialUserMessage') {
-    response = {"text": "Hi, I'm your weather to go chatbot and I can help you decide when you should leave, to be on time. I will check the weather forecast, and compare it with the live traffic in your location. Tap the location button at the bottom, to start!"}
+    response = {
+      "text": "Hi, I'm your weather to go chatbot and I can help you decide when you should leave, to be on time. I will check the weather forecast, and compare it with the live traffic in your location. Tap the location button at the bottom, to start!",
+      "quick_replies":[
+          {
+              "content_type":"location"
+          }
+      ]
+    }
   }
   // Send the message to acknowledge the postback
   callSendAPI(sender_psid, response);
@@ -200,9 +219,9 @@ function callSendAPI(sender_psid, response) {
   }); 
 }
 
-const bomURL = 'http://reg.bom.gov.au/fwo/IDN60901/IDN60901.94768.json';
-
 function isRaining() {
+  const bomURL = 'http://reg.bom.gov.au/fwo/IDN60901/IDN60901.94768.json';
+
   var raining = false
 
   request.get({url: bomURL, json: true}, (err, res, data) => {
@@ -216,7 +235,7 @@ function isRaining() {
               }
           }
       } else {
-          // response other than 200 OK
+          // Ignore if response other than 200 OK
           console.log(res.statusCode)
       }
   });
@@ -226,4 +245,51 @@ function isRaining() {
 
 app.get('/raining', (req, res) => {
   res.status(200).send(isRaining());
+});
+
+function localTraffic(coordinates) {
+  const trafficAPIUrl = 'https://api.transport.nsw.gov.au/v1/ttds/events';
+
+  let message = 'There is normal traffic in your area. Enjoy your commute!'
+
+  request.get(
+      {
+          url: trafficAPIUrl,
+          json: true,
+          headers: {
+              'Authorization': `apikey ${TRANSPORT_NSW_API_KEY}`,
+              'User-Agent': 'weathertogo/1.0',
+          }
+      }, (err, res, data) => {
+      if (err) {
+          console.log(err)
+      } else if (res.statusCode === 200) {
+          if (data.events.length > 0) {
+              for(let i = 0; i < data.events.length; i++){
+                  const distDiff = geolib.getDistance(
+                      {latitude: data.events[i].head.lat, longitude: data.events[i].head.lng},
+                      {latitude: coordinates.lat, longitude: coordinates.long}
+                  );
+                  // if traffic incident within 2km
+                  if (distDiff < 2000) {
+                    message = 'There is some traffic in your area. Consider leaving 15 minutes earlier.'
+                    break
+                  }
+              }
+          }
+      } else {
+          // Ignore if response other than 200 OK
+          console.log(res.statusCode)
+      }
+  });
+
+  return message
+}
+
+app.get('/traffic', (req, res) => {
+    const coordinates = {
+        long: 151.224775,
+        lat: -33.830969,
+    }
+    res.status(200).send(localTraffic(coordinates));
 });
