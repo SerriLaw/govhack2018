@@ -119,33 +119,39 @@ function handleMessage(sender_psid, received_message) {
       "text": message
     }
   } else if (received_message.attachments) {
-    // Get the URL of the message attachment
-    let attachment_url = received_message.attachments[0].payload.url;
-    response = {
-      "attachment": {
-        "type": "template",
-        "payload": {
-          "template_type": "generic",
-          "elements": [{
-            "title": "Is this the right picture?",
-            "subtitle": "Tap a button to answer.",
-            "image_url": attachment_url,
-            "buttons": [
-              {
-                "type": "postback",
-                "title": "Yes!",
-                "payload": "yes",
-              },
-              {
-                "type": "postback",
-                "title": "No!",
-                "payload": "no",
-              }
-            ],
-          }]
+
+    if (received_message.attachments[0].payload) {
+      response = {
+        "text": `Here's the latest info for Sydney: ${message}`
+      }
+    } else {
+      let attachment_url = received_message.attachments[0].payload.url;
+      response = {
+        "attachment": {
+          "type": "template",
+          "payload": {
+            "template_type": "generic",
+            "elements": [{
+              "title": "Is this the right picture?",
+              "subtitle": "Tap a button to answer.",
+              "image_url": attachment_url,
+              "buttons": [
+                {
+                  "type": "postback",
+                  "title": "Yes!",
+                  "payload": "yes",
+                },
+                {
+                  "type": "postback",
+                  "title": "No!",
+                  "payload": "no",
+                }
+              ],
+            }]
+          }
         }
       }
-    }
+    }    
   } 
   
   // Send the response message
@@ -163,6 +169,8 @@ function handlePostback(sender_psid, received_postback) {
     response = { "text": "Thanks!" }
   } else if (payload === 'no') {
     response = { "text": "Oops, try sending another image." }
+  } else if (payload === 'InitialUserMessage') {
+    response = {"text": "Hi, I'm your weather to go chatbot and I can help you decide when you should leave, to be on time. I will check the weather forecast, and compare it with the live traffic in your location. Tap the location button at the bottom, to start!"}
   }
   // Send the message to acknowledge the postback
   callSendAPI(sender_psid, response);
