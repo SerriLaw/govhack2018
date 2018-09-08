@@ -102,13 +102,21 @@ app.get('/webhook', (req, res) => {
 
 function handleMessage(sender_psid, received_message) {
   let response;
-  
+  let message;
+
+  const raining = isRaining();
+  if (raining) {
+    message = "It's raining right now 😢 Bring an umbrella with you ☂️"
+  } else {
+    message = "It's sunny outside! 😄"
+  }
+
   // Checks if the message contains text
   if (received_message.text) {    
     // Create the payload for a basic text message, which
     // will be added to the body of our request to the Send API
     response = {
-      "text": `You sent the message: "${received_message.text}". Now send me an attachment!`
+      "text": message
     }
   } else if (received_message.attachments) {
     // Get the URL of the message attachment
@@ -183,3 +191,31 @@ function callSendAPI(sender_psid, response) {
     }
   }); 
 }
+
+const bomURL = 'http://reg.bom.gov.au/fwo/IDN60901/IDN60901.94768.json';
+
+function isRaining() {
+  var raining = false
+
+  request.get({url: bomURL, json: true}, (err, res, data) => {
+      if (err) {
+          console.log(err)
+      } else if (res.statusCode === 200) {
+          if (data.observations.data.length > 0) {
+              // Check if it has started raining in the last half hour
+              if (data.observations.data[0].rain_trace > data.observations.data[1].rain_trace) {
+                  raining = true
+              }
+          }
+      } else {
+          // response other than 200 OK
+          console.log(res.statusCode)
+      }
+  });
+
+  return raining
+}
+
+app.get('/raining', (req, res) => {
+  res.status(200).send(isRaining());
+});
