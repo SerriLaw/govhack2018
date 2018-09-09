@@ -47,3 +47,6 @@ In some cases there was limited access to historical data. For example, ferry pe
     - Used the boilerplate [Messenger Platform quick start tutorial](https://developers.facebook.com/docs/messenger-platform/getting-started/quick-start).
 - Hosted on Heroku
 
+## Privacy Policy
+
+We do not store or share any user data whatsoever. Location data is used solely for weather and travel predictions.
