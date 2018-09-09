@@ -115,9 +115,9 @@ function handleMessage(sender_psid, received_message) {
 
   const raining = isRaining();
   if (raining) {
-    message = "It's raining right now 😢 Bring an umbrella with you ☂️"
+    message = "There is heavy rain predicted. Do not forget your umbrella! ☂️"
   } else {
-    message = "It's sunny outside! 😄"
+    message = "It's sunny outside! ☀️"
   }
 
   // Checks if the message contains text
@@ -250,7 +250,7 @@ app.get('/raining', (req, res) => {
 function localTraffic(coordinates) {
   const trafficAPIUrl = 'https://api.transport.nsw.gov.au/v1/ttds/events';
 
-  let message = 'There is normal traffic in your area. Enjoy your commute!'
+  let message = 'There is normal traffic in your area. You can leave at your usual time.'
 
   request.get(
       {
